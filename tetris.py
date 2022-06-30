@@ -20,43 +20,43 @@ class Tetromino:
             ((0, 0), (0, 1), (1, 0), (1, 1)),
             ((0, 0), (0, 1), (1, 0), (1, 1)),
             ((0, 0), (0, 1), (1, 0), (1, 1)),
-            ((0, 0), (0, 1), (1, 0), (1, 1))
+            ((0, 0), (0, 1), (1, 0), (1, 1)),
         ),
         ( # I
             ((1, 0), (1, 1), (1, 2), (1, 3)),
             ((0, 2), (1, 2), (2, 2), (3, 2)),
             ((2, 0), (2, 1), (2, 2), (2, 3)),
-            ((0, 1), (1, 1), (2, 1), (3, 1))
+            ((0, 1), (1, 1), (2, 1), (3, 1)),
         ),
         ( # Z
             ((0, 0), (0, 1), (1, 1), (1, 2)),
             ((0, 2), (1, 1), (1, 2), (2, 1)),
             ((1, 0), (1, 1), (2, 1), (2, 2)),
-            ((0, 1), (1, 0), (1, 1), (2, 0))
+            ((0, 1), (1, 0), (1, 1), (2, 0)),
         ),
         ( # S
             ((0, 1), (0, 2), (1, 0), (1, 1)),
             ((0, 1), (1, 1), (1, 2), (2, 2)),
             ((1, 1), (1, 2), (2, 0), (2, 1)),
-            ((0, 0), (1, 0), (1, 1), (2, 1))
+            ((0, 0), (1, 0), (1, 1), (2, 1)),
         ),
         ( # J
             ((0, 0), (1, 0), (1, 1), (1, 2)),
             ((0, 1), (0, 2), (1, 1), (2, 1)),
             ((1, 0), (1, 1), (1, 2), (2, 2)),
-            ((0, 1), (1, 1), (2, 0), (2, 1))
+            ((0, 1), (1, 1), (2, 0), (2, 1)),
         ),
         ( # L
             ((0, 2), (1, 0), (1, 1), (1, 2)),
             ((0, 1), (1, 1), (2, 1), (2, 2)),
             ((1, 0), (1, 1), (1, 2), (2, 0)),
-            ((0, 0), (0, 1), (1, 1), (2, 1))
+            ((0, 0), (0, 1), (1, 1), (2, 1)),
         ),
         ( # T
             ((0, 1), (1, 0), (1, 1), (1, 2)),
             ((0, 1), (1, 1), (1, 2), (2, 1)),
             ((1, 0), (1, 1), (1, 2), (2, 1)),
-            ((0, 1), (1, 0), (1, 1), (2, 1))
+            ((0, 1), (1, 0), (1, 1), (2, 1)),
         ),
     )
 
@@ -144,10 +144,10 @@ class Tetris:
                 num_holes[c] += 1 if grid[r][c] == 0 else 0
                 r += 1
 
-        return np.array([heights + num_holes + [1 if i == tetromino.tetromino_index else 0 for i in range(Tetromino.NUM_TETROMINOS)]]).astype("float")
+        return np.array(heights + num_holes + [1 if i == tetromino.tetromino_index else 0 for i in range(Tetromino.NUM_TETROMINOS)]).astype("float")
 
-    def get_next_states(self) -> dict[Action, tuple[Reward, Features]]:
-        next_states: dict[Action, tuple[Reward, Features]] = {}
+    def get_next_states(self) -> tuple[list[Action], list[list[Reward]], list[Features]]:
+        next_states: tuple[list[Action], list[list[Reward]], list[Features]] = ([], [], [],)
         rotation_indices: list[int] = [0] if self.current_tetromino.tetromino_index == 0 else [0, 1, 2, 3]
 
         for rotation_index in rotation_indices:
@@ -168,11 +168,13 @@ class Tetris:
                     grid: Grid = self._add_to_grid()
                     num_cleared_rows, grid = self._clear_rows(grid)
                     reward: Reward = 1 + num_cleared_rows * Tetris.GRID_COLS
-                    next_states[Action(rotation_index=rotation_index, c=c)] = (reward, self._get_features(grid, self.next_tetromino))
+                    next_states[0].append(Action(rotation_index=rotation_index, c=c))
+                    next_states[1].append([reward])
+                    next_states[2].append(self._get_features(grid, self.next_tetromino))
 
         return next_states
 
-    def step(self, action: Action, render: bool=False) -> Reward:
+    def step(self, action: Action, render: bool=False):
         self.current_tetromino.rotation_index = action.rotation_index
         self.current_tetromino.tetromino_offsets = Tetromino.TETROMINO_OFFSETS[self.current_tetromino.tetromino_index][self.current_tetromino.rotation_index]
         self.current_tetromino.r = 0
@@ -198,8 +200,6 @@ class Tetris:
         self.current_tetromino.r = self.next_tetromino.r
         self.current_tetromino.c = self.next_tetromino.c
         self._spawn(self.next_tetromino)
-
-        return self.reward
 
     def render(self) -> None:
         grid: Grid = self._add_to_grid()
