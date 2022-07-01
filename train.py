@@ -9,7 +9,7 @@ BATCH_SIZE: int = 512
 NUM_EPISODES: int = 2000
 MAX_STEPS_PER_EPISODE: int = 1000
 RENDER_EVERY: int = 10
-TRAIN_EVERY: int = 1
+TRAIN_EVERY: int = 10
 EPS_START: float = 0.99
 EPS_END: float = 0.0
 EPS_DECAY: float = (EPS_START - EPS_END) / 1000
@@ -39,9 +39,9 @@ class ReplayMemory:
         return len(self.memory)
 
 agent = tf.keras.Sequential()
-agent.add(tf.keras.layers.Dense(units=512, activation="gelu", input_shape=(Tetris.GRID_COLS * 2 + Tetromino.NUM_TETROMINOS,)))
-agent.add(tf.keras.layers.Dense(units=256, activation="gelu"))
-agent.add(tf.keras.layers.Dense(units=128, activation="gelu"))
+agent.add(tf.keras.layers.Dense(units=512, activation="relu", input_shape=(Tetris.GRID_COLS * 2 + Tetromino.NUM_TETROMINOS,)))
+agent.add(tf.keras.layers.Dense(units=256, activation="relu"))
+agent.add(tf.keras.layers.Dense(units=128, activation="relu"))
 agent.add(tf.keras.layers.Dense(units=1))
 
 agent.compile(
@@ -52,8 +52,9 @@ agent.compile(
 tetris_env = Tetris()
 replay_memory = ReplayMemory()
 eps: float = EPS_START
+pbar = tqdm(range(NUM_EPISODES))
 
-for episode in range(NUM_EPISODES):
+for episode in pbar:
     episode_steps: int = 0
     reward, current_features = tetris_env.reset()
     score: Reward = 0
@@ -84,3 +85,5 @@ for episode in range(NUM_EPISODES):
         agent.fit(x, y, batch_size=BATCH_SIZE, epochs=1, verbose=0)
 
     eps = max(eps - EPS_DECAY, EPS_END)
+
+    pbar.set_description(f"Episode #{episode} | Score: {score} | RML: {len(replay_memory)}")
