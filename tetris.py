@@ -75,30 +75,27 @@ class Tetris:
         self.grid: Grid
         self.tetromino_bag: list[int]
         self.current_tetromino: Tetromino = Tetromino()
-        self.next_tetromino: Tetromino = Tetromino()
         self.reward: Reward
         self.reset()
     
     def reset(self) -> tuple[Reward, Features]:
         self.grid = [[0 for c in range(Tetris.GRID_COLS)] for r in range(Tetris.GRID_ROWS)]
         self.tetromino_bag = []
-        self._spawn(self.current_tetromino)
-        self._spawn(self.next_tetromino)
+        self._spawn()
         self.reward = 0
 
-        return self.reward, self._get_features(self.grid, self.current_tetromino)
+        return self.reward, np.array([0. for i in range(30)])
 
-    def _spawn(self, tetromino: Tetromino) -> None:
+    def _spawn(self) -> None:
         if len(self.tetromino_bag) == 0:
-            self.tetromino_bag += list(range(Tetromino.NUM_TETROMINOS))
             self.tetromino_bag += list(range(Tetromino.NUM_TETROMINOS))
             random.shuffle(self.tetromino_bag)
 
-        tetromino.tetromino_index = self.tetromino_bag.pop()
-        tetromino.rotation_index = 0
-        tetromino.tetromino_offsets = Tetromino.TETROMINO_OFFSETS[tetromino.tetromino_index][tetromino.rotation_index]
-        tetromino.r = 0
-        tetromino.c = 0
+        self.current_tetromino.tetromino_index = self.tetromino_bag.pop()
+        self.current_tetromino.rotation_index = 0
+        self.current_tetromino.tetromino_offsets = Tetromino.TETROMINO_OFFSETS[self.current_tetromino.tetromino_index][self.current_tetromino.rotation_index]
+        self.current_tetromino.r = 0
+        self.current_tetromino.c = 0
 
     def _check_for_collision(self) -> bool:
         for r0, c0 in self.current_tetromino.tetromino_offsets:
@@ -114,7 +111,8 @@ class Tetris:
         grid: Grid = deepcopy(self.grid)
 
         for r0, c0 in self.current_tetromino.tetromino_offsets:
-            grid[self.current_tetromino.r + r0][self.current_tetromino.c + c0] = 1
+            if self.current_tetromino.r >= 0:
+                grid[self.current_tetromino.r + r0][self.current_tetromino.c + c0] = 1
 
         return grid
 
@@ -129,9 +127,10 @@ class Tetris:
         
         return num_cleared_rows, grid
 
-    def _get_features(self, grid: Grid, tetromino: Tetromino) -> Features:
-        heights: list[int] = [0 for c in range(Tetris.GRID_COLS)]
+    def _get_features(self, grid: Grid) -> list[int]:
         num_holes: list[int] = [0 for c in range(Tetris.GRID_COLS)]
+        heights: list[int] = [0 for c in range(Tetris.GRID_COLS)]
+        bumpiness: list[int] = [0 for c in range(Tetris.GRID_COLS - 1)]
 
         for c in range(Tetris.GRID_COLS):
             r: int = 0
@@ -139,15 +138,16 @@ class Tetris:
                 r += 1
             
             heights[c] = Tetris.GRID_ROWS - r
-
             while r < Tetris.GRID_ROWS:
                 num_holes[c] += 1 if grid[r][c] == 0 else 0
                 r += 1
+            if c > 0:
+                bumpiness[c - 1] = abs(heights[c - 1] - heights[c])
 
-        return np.array(heights + num_holes + [1 if i == tetromino.tetromino_index else 0 for i in range(Tetromino.NUM_TETROMINOS)]).astype("float")
+        return num_holes + heights + bumpiness
 
-    def get_next_states(self) -> tuple[list[Action], list[list[Reward]], list[Features]]:
-        next_states: tuple[list[Action], list[list[Reward]], list[Features]] = ([], [], [],)
+    def get_next_states(self) -> tuple[list[Action], list[list[Reward]], list[Features], list[list[int]]]:
+        next_states: tuple[list[Action], list[list[Reward]], list[Features], list[list[int]]] = ([], [], [], [],)
         rotation_indices: list[int] = [0] if self.current_tetromino.tetromino_index == 0 else [0, 1, 2, 3]
 
         for rotation_index in rotation_indices:
@@ -164,17 +164,17 @@ class Tetris:
                     self.current_tetromino.r += 1
                 self.current_tetromino.r -= 1
 
-                if self.current_tetromino.r >= 0:
-                    grid: Grid = self._add_to_grid()
-                    num_cleared_rows, grid = self._clear_rows(grid)
-                    reward: Reward = 1 + num_cleared_rows * Tetris.GRID_COLS
-                    next_states[0].append(Action(rotation_index=rotation_index, c=c))
-                    next_states[1].append([reward])
-                    next_states[2].append(self._get_features(grid, self.next_tetromino))
+                grid: Grid = self._add_to_grid()
+                num_cleared_rows, grid = self._clear_rows(grid)
+                reward: Reward = 1 + (num_cleared_rows ** 2) * Tetris.GRID_COLS
+                next_states[0].append(Action(rotation_index=rotation_index, c=c))
+                next_states[1].append([reward])
+                next_states[2].append(np.array([num_cleared_rows] + self._get_features(grid)).astype("float"))
+                next_states[3].append([1 if self.current_tetromino.r >= 0 else 0])
 
         return next_states
 
-    def step(self, action: Action, render: bool=False):
+    def step(self, action: Action, render: bool=False) -> None:
         self.current_tetromino.rotation_index = action.rotation_index
         self.current_tetromino.tetromino_offsets = Tetromino.TETROMINO_OFFSETS[self.current_tetromino.tetromino_index][self.current_tetromino.rotation_index]
         self.current_tetromino.r = 0
@@ -193,13 +193,8 @@ class Tetris:
         if render:
             self.render()
 
-        self.reward = 1 + num_cleared_rows * Tetris.GRID_COLS
-        self.current_tetromino.tetromino_index = self.next_tetromino.tetromino_index
-        self.current_tetromino.rotation_index = self.next_tetromino.rotation_index
-        self.current_tetromino.tetromino_offsets = self.next_tetromino.tetromino_offsets
-        self.current_tetromino.r = self.next_tetromino.r
-        self.current_tetromino.c = self.next_tetromino.c
-        self._spawn(self.next_tetromino)
+        self.reward = 1 + (num_cleared_rows ** 2) * Tetris.GRID_COLS
+        self._spawn()
 
     def render(self) -> None:
         grid: Grid = self._add_to_grid()
