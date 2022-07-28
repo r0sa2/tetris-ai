@@ -9,7 +9,7 @@ NUM_EPISODES: int = 4000
 MAX_STEPS_PER_EPISODE: int = 10000
 REPLAY_MEMORY_CAPACITY: int = 100000
 REPLAY_MEMORY_MIN_SIZE: int = 4000
-BATCH_SIZE: int = 2048 # 512
+BATCH_SIZE: int = 512
 EPS_START: float = 1.
 EPS_END: float = 0.01
 EPS_DECAY: float = (EPS_START - EPS_END) / 3000
@@ -41,16 +41,14 @@ class ReplayMemory:
         return len(self.memory)
 
 tetris_env: Tetris = Tetris()
-agent.load_weights("./tmp/weights-episode=4550.h5")
 agent.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
     loss=tf.keras.losses.MSE
 )
 replay_memory: ReplayMemory = ReplayMemory()
-eps: float = EPS_END
+eps: float = EPS_START
 
-# pbar = tqdm(range(NUM_EPISODES))
-pbar = tqdm(range(4601, 6001))
+pbar = tqdm(range(NUM_EPISODES))
 episodes: list[int] = []
 scores: list[int] = []
 plt.ion()
@@ -106,13 +104,12 @@ for episode in pbar:
         agent.save_weights(f"./tmp/weights-episode={episode}.h5")
 
     pbar.set_description(f"Episode #{episode} | Score: {score} | RML: {len(replay_memory)}")
-    print(score)
 
-    # plt.cla()
-    # episodes.append(episode)
-    # scores.append(score)
-    # plt.plot(episodes, scores)
-    # plt.xlabel("Episode")
-    # plt.ylabel("Score")
-    # plt.draw()
-    # plt.pause(0.001)
+    plt.cla()
+    episodes.append(episode)
+    scores.append(score)
+    plt.plot(episodes, scores)
+    plt.xlabel("Episode")
+    plt.ylabel("Score")
+    plt.draw()
+    plt.pause(0.001)
