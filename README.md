@@ -3,7 +3,7 @@
 This repository is intended to document the implementation of a deep RL agent to play Tetris.
 
 <p align="center">
-    <img src="/assets/demo.gif" alt="Demo" height="50%" width="50%"/>
+    <img src="/assets/demo.gif" alt="Demo" height="30%" width="30%"/>
 </p>
 
 The game is played on a standard 20x10 grid, with a shuffled bag of size 7 used to generate the tetrominoes (https://tetris.fandom.com/wiki/Random_Generator).
