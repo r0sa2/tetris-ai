@@ -42,7 +42,7 @@ reward = (1 if not game_over else -99) + (num_lines_cleared ** 2) * Tetris.GRID_
 The following histogram shows the distribution of the no. of lines cleared by the trained agent over 30 consecutive games. The minimum and maximum no. of lines cleared in a game were 532 and 66884 respectively.
 
 <p align="center">
-    <img src="/assets/plot.png" alt="Plot" height="100%" width="100%"/>
+    <img src="/assets/plot.png" alt="Plot" height="50%" width="50%"/>
 </p>
 
 We define the scoring efficiency of an agent as the average no. of lines it clears at one go. We note that the scoring efficiency is a value in the range [1, 4] (as the minimum and maximum no. of lines an agent can clear at one go are 1 and 4 respectively). Here, the agent achieved a reasonable scoring efficiency of ~2 consistently over all 30 games. 
