@@ -54,8 +54,3 @@ This project is still a work-in-progress.
 * https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
 * https://codemyroad.wordpress.com/2013/04/14/tetris-ai-the-near-perfect-player/
 * https://github.com/uvipen/Tetris-deep-Q-learning-pytorch/
-
-Features
-Known issues -> 
-
-What is the update? 
