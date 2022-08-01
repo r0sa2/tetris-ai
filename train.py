@@ -13,6 +13,7 @@ BATCH_SIZE: int = 512
 EPS_START: float = 1.
 EPS_END: float = 0.01
 EPS_DECAY: float = (EPS_START - EPS_END) / 3000
+GAME_OVER_PENALTY = -100
 DISCOUNT: float = 0.99
 RENDER_EVERY: int = 10000
 TRAIN_EVERY: int = 1
@@ -94,7 +95,7 @@ for episode in pbar:
         ) = zip(*replay_memory.sample())
         agent.fit(
             np.array(current_features_batch),
-            np.squeeze(reward_batch + (1 - np.array(is_game_over_batch)) * -100 + agent.predict(np.array(next_features_batch)) * is_game_over_batch, axis=1),
+            np.squeeze(reward_batch + (1 - np.array(is_game_over_batch)) * GAME_OVER_PENALTY + agent.predict(np.array(next_features_batch)) * is_game_over_batch, axis=1),
             batch_size=BATCH_SIZE,
             epochs=1,
             verbose=1

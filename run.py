@@ -22,6 +22,7 @@ while True:
     if game_overs[index][0] == 1:
         current_features = features[index]
     else:
+        print(f"(lines_cleared, score): ({lines_cleared}, {score})")
         _, current_features = tetris_env.reset()
         lines_cleared = 0
         score = 0
